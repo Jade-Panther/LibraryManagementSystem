@@ -1,6 +1,6 @@
-public class Librarian {
+public class Librarian extends Person{
 
-    public Librarian(String id, String name, String address, String username, String password) {
-        super(id, name, address, username, password);
+    public Librarian(String id, String name, String address, String email, String password) {
+        super(id, name, address, email, password);
     }
 }
