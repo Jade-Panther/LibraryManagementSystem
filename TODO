@@ -53,6 +53,7 @@ Loan:
     - returnData: Date
     - issuedDate: Date
     - finePaid: boolean
+    - overdue: boolean
     - DAILY_FEE: int
     - LOST_FEE: int
     - computeFine(): double
@@ -71,3 +72,6 @@ Options
 2. New Librarian account
 4. Librarian Log in
 5. Search books
+
+Extras:
+    - Format book toString

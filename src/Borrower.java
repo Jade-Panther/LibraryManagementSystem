@@ -1,6 +1,7 @@
 import java.util.ArrayList;
+import java.io.Serializable;
 
-public class Borrower extends Person {
+public class Borrower extends Person implements Serializable{
     private ArrayList<Loan> checkedOut = new ArrayList<>();
     private ArrayList<HoldRequest> holds = new ArrayList<>();
 
@@ -14,5 +15,9 @@ public class Borrower extends Person {
 
     public void addHoldRequest(Book book) {
         holds.add(new HoldRequest(book));
+    }
+
+    public String toString() {
+        return super.toString() + "   Total Loans: " + checkedOut.size() + "   Total Holds: " + holds.size();
     }
 }

@@ -1,4 +1,7 @@
-public class Person {
+
+import java.io.Serializable;
+
+public class Person implements Serializable{
     private String id, name, address, email, password;
 
     public Person(String id, String name, String address, String email, String password) {
@@ -9,7 +12,17 @@ public class Person {
         this.password = password;
     }
 
-    public void printInfo() {
-        System.out.println(id + " Name: " + name + " Address: " + address + "Email: " + email + " Password: " + password);
+    public String getEmail() {
+        return email;
+    }
+    public String getPassword() {
+        return password;
+    }
+    public String getName() {
+        return name;
+    }
+
+    public String toString() {
+        return id + " Name: " + name + ", Address: " + address + ", Email: " + email + ", Password: " + password;
     }
 }

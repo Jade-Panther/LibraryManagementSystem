@@ -1,4 +1,6 @@
-public class Book {
+import java.io.Serializable;
+
+public class Book implements Serializable {
     private final String title, author, isbn, subject;
     private Status status;
 
@@ -11,7 +13,7 @@ public class Book {
     }
     
     public String toString() {
-        return "ISBN: " + isbn + " Title: " + title + " Author: " + author + " Subject: " + subject + " Status: " + status;
+        return "ISBN: " + isbn + ", Title: " + title + ", Author: " + author + ", Subject: " + subject + ", Status: " + status;
     }
 
     public void placeOnHold(Borrower borrower) {
