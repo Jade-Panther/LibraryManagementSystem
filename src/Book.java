@@ -16,9 +16,16 @@ public class Book implements Serializable {
         return "ISBN: " + isbn + ", Title: " + title + ", Author: " + author + ", Subject: " + subject + ", Status: " + status;
     }
 
-    public void placeOnHold(Borrower borrower) {
+    public void checkIn() {
+        status = Status.AVAILABLE;
+    }
+
+    public void checkOut() {
+        status = Status.BORROWED;
+    }
+
+    public void placeOnHold() {
         status = Status.HELD;
-        borrower.addHoldRequest(this);
     }
 
     public String getTitle() {
@@ -31,5 +38,9 @@ public class Book implements Serializable {
 
     public String getIsbn() {
         return isbn;
+    }
+
+    public Status getStatus() {
+        return status;
     }
 }

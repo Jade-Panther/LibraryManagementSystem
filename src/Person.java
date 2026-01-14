@@ -2,10 +2,9 @@
 import java.io.Serializable;
 
 public class Person implements Serializable{
-    private String id, name, address, email, password;
+    private String name, address, email, password;
 
-    public Person(String id, String name, String address, String email, String password) {
-        this.id = id;
+    public Person(String name, String address, String email, String password) {
         this.name = name;
         this.address = address;
         this.email = email;
@@ -23,6 +22,6 @@ public class Person implements Serializable{
     }
 
     public String toString() {
-        return id + " Name: " + name + ", Address: " + address + ", Email: " + email + ", Password: " + password;
+        return "Name: " + name + ", Address: " + address + ", Email: " + email + ", Password: " + password;
     }
 }

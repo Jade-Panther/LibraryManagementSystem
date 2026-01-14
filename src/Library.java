@@ -1,14 +1,17 @@
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.io.*;
+import java.io.Serializable;
 
 //clear && javac *.java && java Application
 
-public class Library {
+public class Library implements Serializable {
     private ArrayList<Borrower> borrowers;
     private ArrayList<Librarian> librarians;
-    private Scanner input;
+    private transient Scanner input;
+    private transient Person currLogin;
     private Catalog catalog;
+    
     private static final String ADMIN_USERNAME = "Zues";
     private static final String ADMIN_PASSWORD = "qwerty";
 
@@ -17,53 +20,38 @@ public class Library {
         librarians = new ArrayList<>();
         input = new Scanner(System.in);
         catalog = new Catalog();
-
-        loadObjects();
+        currLogin = null;
     }
 
-    public void loadObjects() {
-        System.out.println("Loading objects...");
-        try {
-            FileInputStream file = new FileInputStream("/workspaces/LibraryManagementSystem/data/borrowers.txt");
-            ObjectInputStream reader = new ObjectInputStream(file);
+    public void saveLibrary() {
+        try (ObjectOutputStream out =
+            new ObjectOutputStream(
+                new FileOutputStream("/workspaces/LibraryManagementSystem/data/library.dat"))) {
 
-            while (true) {
-                try {
-                    Borrower b = (Borrower) reader.readObject();
-                    borrowers.add(b);  
-                } 
-                catch (EOFException e) {
-                    break;
-                }
-            }
-            for(Borrower b: borrowers) {
-                System.out.println(b);
-            }
+            out.writeObject(this);
+            System.out.println("Library saved.");
 
-            System.out.println("Borrowers loaded");
-
-            reader.close();
-        }
-        catch(IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("\n");
     }
 
-    public void saveObjects() {
-        try {
-            FileOutputStream file = new FileOutputStream("/workspaces/LibraryManagementSystem/data/borrowers.txt");
-            ObjectOutputStream writer = new ObjectOutputStream(file);
+    public static Library loadLibrary() {
+        try (ObjectInputStream in =
+            new ObjectInputStream(
+                new FileInputStream("/workspaces/LibraryManagementSystem/data/library.dat"))) {
 
-            for(Borrower b: borrowers) {
-                writer.writeObject(b);
-            }
-            System.out.println("Borrowers saved");
+            Library lib = (Library) in.readObject();
 
-            writer.close();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+            lib.input = new Scanner(System.in);
+            lib.currLogin = null;
+
+            System.out.println("Library loaded.");
+            return lib;
+
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("No saved library found. Creating new one.");
+            return new Library();
         }
     }
 
@@ -88,6 +76,37 @@ public class Library {
         }
     
         Catalog.displayResults(results);
+
+        if(currLogin instanceof Borrower borrower) {
+            while(results.size() > 0) {
+                System.out.print("\nEnter book number to check out or request if not avalable (0 to skip): ");
+                int bookNum = input.nextInt();
+
+                if(bookNum == 0) {
+                    break;
+                }
+
+                Book book = results.get(bookNum-1);
+                if(!borrower.hasBook(book)) {
+                    if(book.getStatus() == Status.AVAILABLE) {
+                        
+                            borrower.checkOutBook(book);
+                        
+                        System.out.println(book.getTitle() + " is now checked out!");
+                    }
+                    else {
+                        borrower.addHoldRequest(book);
+                        System.out.println(book.getTitle() + " has been requested.");
+                    }
+                }
+                else {
+                    System.out.println("Book already in account");
+                }
+            }
+        }
+        
+        
+
         System.out.println();
     }
 
@@ -104,8 +123,10 @@ public class Library {
         System.out.print("Enter password: ");
         String password = input.nextLine();
 
-        borrowers.add(new Borrower("1", name, address, email, password));
+        borrowers.add(new Borrower(name, address, email, password));
         System.out.println("Welcome " + name + "!");
+
+        currLogin = borrowers.getLast();
     }
 
     public void addLibrarian() {
@@ -115,8 +136,8 @@ public class Library {
         System.out.print("Enter address: ");
         String address = input.nextLine();
 
-        System.out.print("Enter username: ");
-        String username = input.nextLine();
+        System.out.print("Enter email: ");
+        String email = input.nextLine();
 
         System.out.print("Enter password: ");
         String password = input.nextLine();
@@ -124,11 +145,11 @@ public class Library {
         System.out.print("Enter yearly salary: ");
         String salary = input.nextLine();
 
-        librarians.add(new Librarian("1", name, address, username, password, salary));
+        librarians.add(new Librarian(name, address, email, password, salary));
         System.out.println("Welcome " + name + "!");
     }
 
-    public void borrowerLogin() {
+    public void login() {
         System.out.println("------ Account Login ------");
 
         while(true) {
@@ -138,15 +159,26 @@ public class Library {
             System.out.print("Password: ");
             String password = input.nextLine();
 
-            Borrower currBorrower = null;
+            currLogin = null;
+            
             for(Borrower b: borrowers) {
                 if(email.equals(b.getEmail()) && password.equals(b.getPassword())) {
-                    currBorrower = b;
+                    currLogin = b;
+                }
+            }
+            
+            if(currLogin == null) {
+                for(Librarian l: librarians) {
+                    if(email.equals(l.getEmail()) && password.equals(l.getPassword())) {
+                        currLogin = l;
+                    }
                 }
             }
 
-            if(currBorrower == null) {
+            if(currLogin == null) {
                 System.out.println("Email or Password incorrect");
+            }
+            else {
                 break;
             }
         }
@@ -191,18 +223,87 @@ public class Library {
         }
     }
 
+    public void updateHolds(Book book) {
+        for(Borrower b : borrowers) {
+            for(HoldRequest h : b.getHolds()) {
+                if(h.getBook().equals(book)) {
+                    h.setReady();
+                }
+            }
+        }
+    }
 
+    public void checkAccount() {
+        if(currLogin instanceof Borrower borrower) {
+            System.out.println("------ Your Account ------");
+            borrower.printBooks();
+
+            ArrayList<Integer> checkIns = new ArrayList<>();
+            while(borrower.getCheckedOut().size() > 0) {
+                System.out.print("\nEnter book number to return (0 to skip): ");
+                int bookNum = input.nextInt();
+                if(bookNum == 0) {
+                    break;
+                }
+                else {
+                    checkIns.add(bookNum-1);
+                }
+            }
+            checkIns.sort( (a, b) -> { return a.compareTo(b); } );
+            for(Integer i : checkIns) {
+                System.out.println(i);
+                Loan loan = borrower.getCheckedOut().get(i);
+                updateHolds(loan.getBook());
+                borrower.checkInBook(loan);
+            }
+
+            for(HoldRequest hold : borrower.getReadyBooks()) {
+                System.out.println("You have a book ready! Press enter to check out " + hold.getBook().getTitle() + ": ");
+                input.nextLine();
+                borrower.checkOutHoldBook(hold);
+            }
+
+            System.out.print("Press enter to return");
+            input.nextLine();
+        }
+    }
+
+    public void addNewBook() {
+        System.out.println("Enter book title: ");
+        String title = input.nextLine();
+
+        System.out.println("Enter book author: ");
+        String author = input.nextLine();
+
+        System.out.println("Enter book isbn: ");
+        String isbn = input.nextLine();
+
+        System.out.println("Enter book subject: ");
+        String subject = input.nextLine();
+
+        catalog.addBook(title, author, isbn, subject);
+    }
 
     public void run() {
         boolean running = true;
         while(running) {
-            System.out.println("Options:");
+            System.out.println("\nOptions:");
             System.out.println("1. Search Books");
-            System.out.println("2. Log in");
-            System.out.println("3. New Borrower account:");
-            System.out.println("4. Administrative portal");
-            System.out.println("5. Quit");
-            
+            if(currLogin == null) {
+                System.out.println("2. Log in");
+                System.out.println("3. New Borrower account:");
+                System.out.println("4. Administrative portal");
+                System.out.println("5. Quit");
+            }
+            else if(currLogin instanceof Borrower) {
+                System.out.println("2. Check account");
+                System.out.println("3. Log Out");
+            }
+            else if(currLogin instanceof Librarian) {
+                System.out.println("2. Add new Book");
+                System.out.println("3. See all books");
+                System.out.println("4. Log Out");
+            }
             System.out.print("Choice > ");
 
             int choice = input.nextInt();
@@ -210,10 +311,9 @@ public class Library {
 
             Application.clear();
 
-            boolean running2 = true;
-            while(running2) {
-                switch(choice) {
-                    case 1: {
+            switch(choice) {
+                case 1: {
+                    while(true) {
                         System.out.println("------ Search Items ------");
                         System.out.println("Search by:");
                         System.out.println("1. Book title");
@@ -226,37 +326,55 @@ public class Library {
                         input.nextLine();
 
                         if(type == 4) {
-                            running2 = false;
+                            Application.clear();
                             break;
                         }
 
                         search(type);
-
-                        break;
                     }
-                    case 2: {
-                        borrowerLogin();
-                        break;
+                    break;
+                }
+                case 2: {
+                    if(currLogin == null) {
+                        login();
                     }
-                    case 3: {
+                    else if(currLogin instanceof Borrower) {
+                        checkAccount();
+                    }
+                    else {
+                        addNewBook();
+                    }
+                    Application.clear();
+                    break;
+                }
+                case 3: {
+                    if(currLogin == null) {
                         System.out.println("------ Borrower Sign up ------");
                         addBorrower();
-                        running2 = false;
-                        break;
                     }
-                    case 4: {
+                    else if(currLogin instanceof Borrower){
+                        currLogin = null;
+                    }
+                    else {
+                        Catalog.displayResults(catalog.getAllBooks());
+                    }
+                    break;
+                }
+                case 4: {
+                    if(currLogin instanceof Librarian) {
+                        currLogin = null;
+                    }
+                    else {
                         adminPortal();
-                        running2 = false;
-                        break;
                     }
-                    case 5: {
-                        saveObjects();
-                        running = false;
-                        running2 = false;
-                        break;
-                    }
+                    break;
+                }
+                case 5: {
+                    running = false;
+                    break;
                 }
             }
+            
         }
     }
 }
