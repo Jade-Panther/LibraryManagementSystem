@@ -290,18 +290,18 @@ public class Library implements Serializable {
             System.out.println("\nOptions:");
             System.out.println("1. Search Books");
             if(currLogin == null) {
-                System.out.println("2. Log in");
-                System.out.println("3. New Borrower account:");
-                System.out.println("4. Administrative portal");
+                System.out.println("2. Login");
+                System.out.println("3. New Borrower Account:");
+                System.out.println("4. Administrative Portal");
                 System.out.println("5. Quit");
             }
             else if(currLogin instanceof Borrower) {
-                System.out.println("2. Check account");
+                System.out.println("2. Check Account");
                 System.out.println("3. Log Out");
             }
             else if(currLogin instanceof Librarian) {
-                System.out.println("2. Add new Book");
-                System.out.println("3. See all books");
+                System.out.println("2. Add New Book");
+                System.out.println("3. See All Books");
                 System.out.println("4. Log Out");
             }
             System.out.print("Choice > ");
